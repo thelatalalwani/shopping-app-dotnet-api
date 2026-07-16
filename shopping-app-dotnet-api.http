@@ -1,0 +1,6 @@
+@shopping_app_dotnet_api_HostAddress = http://localhost:5220
+
+GET {{shopping_app_dotnet_api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
