@@ -1,5 +1,6 @@
 using shopping_app_dotnet_api.Interfaces;
 using shopping_app_dotnet_api.Interfaces.Repositories;
+using shopping_app_dotnet_api.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<DbConnectionFactory>();
 
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 
 builder.Services.AddCors(options =>
 {
