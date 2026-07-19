@@ -7,17 +7,17 @@ namespace shopping_app_dotnet_api.Controllers;
 [Route("api/[controller]")]
 public class ProductsController : ControllerBase
 {
-    private readonly IProductRepository _productRepository;
+    private readonly IProductService _productService;
 
-    public ProductsController(IProductRepository productRepository)
+    public ProductsController(IProductService productService)
     {
-        _productRepository = productRepository;
+        _productService = productService;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var products = await _productRepository.GetAllAsync();
+        var products = await _productService.GetAllAsync();
 
         return Ok(products);
     }
@@ -25,7 +25,7 @@ public class ProductsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var product = await _productRepository.GetByIdAsync(id);
+        var product = await _productService.GetByIdAsync(id);
 
         if (product is null)
         {

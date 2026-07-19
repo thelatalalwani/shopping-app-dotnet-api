@@ -1,5 +1,6 @@
 using shopping_app_dotnet_api.Interfaces;
 using shopping_app_dotnet_api.Interfaces.Repositories;
+using shopping_app_dotnet_api.Middleware;
 using shopping_app_dotnet_api.Repositories;
 using shopping_app_dotnet_api.Services;
 
@@ -19,6 +20,7 @@ builder.Services.AddSingleton<DbConnectionFactory>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 
 builder.Services.AddCors(options =>
 {
@@ -42,6 +44,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseHttpsRedirection();
 
