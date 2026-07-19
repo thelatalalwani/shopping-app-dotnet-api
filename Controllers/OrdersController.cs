@@ -8,19 +8,22 @@ namespace shopping_app_dotnet_api.Controllers;
 [Route("api/[controller]")]
 public class OrdersController : ControllerBase
 {
-    private readonly IOrderRepository _orderRepository;
+    private readonly IOrderService _orderService;
 
-    public OrdersController(IOrderRepository orderRepository)
+    public OrdersController(IOrderService orderService)
     {
-        _orderRepository = orderRepository;
+        _orderService = orderService;
     }
 
     [HttpPost]
     public async Task<IActionResult> CreateOrder(
         CreateOrderRequest request)
     {
-        await _orderRepository.CreateOrderAsync(request);
+        await _orderService.CreateOrderAsync(request);
 
-        return Ok();
+        return Ok(new
+        {
+            message = "Order placed successfully"
+        });
     }
 }
