@@ -1,4 +1,4 @@
-namespace shopping_app_dotnet_api.Interfaces.Models;
+namespace ShoppingApp.Api.Interfaces.Models;
 
 public class Product
 {

@@ -1,4 +1,4 @@
-namespace shopping_app_dotnet_api.DTOs;
+namespace ShoppingApp.Api.DTOs;
 
 public class CreateOrderRequest
 {
@@ -20,3 +20,4 @@ public class CreateOrderRequest
 
     public List<OrderItemRequest> Items { get; set; } = new List<OrderItemRequest>();
 }
+

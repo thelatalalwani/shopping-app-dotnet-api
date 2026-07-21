@@ -1,8 +1,8 @@
 using Microsoft.Data.SqlClient;
-using shopping_app_dotnet_api.Interfaces;
-using shopping_app_dotnet_api.Interfaces.Models;
+using ShoppingApp.Api.Interfaces;
+using ShoppingApp.Api.Interfaces.Models;
 
-namespace shopping_app_dotnet_api.Interfaces.Repositories;
+namespace ShoppingApp.Api.Interfaces.Repositories;
 
 public class ProductRepository : IProductRepository
 {
@@ -86,3 +86,4 @@ public class ProductRepository : IProductRepository
         };
     }
 }
+

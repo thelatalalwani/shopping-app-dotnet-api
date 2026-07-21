@@ -1,4 +1,4 @@
-namespace shopping_app_dotnet_api.DTOs;
+namespace ShoppingApp.Api.DTOs;
 
 public class OrderItemRequest
 {
@@ -8,3 +8,4 @@ public class OrderItemRequest
 
     public decimal Price { get; set; }
 }
+

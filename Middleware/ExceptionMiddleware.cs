@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text.Json;
 
-namespace shopping_app_dotnet_api.Middleware;
+namespace ShoppingApp.Api.Middleware;
 
 public class ExceptionMiddleware
 {
@@ -64,4 +64,5 @@ public class ExceptionMiddleware
         await context.Response.WriteAsync(jsonResponse);
     }
 }
+
 

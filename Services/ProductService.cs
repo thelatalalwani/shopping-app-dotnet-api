@@ -1,7 +1,7 @@
-using shopping_app_dotnet_api.Interfaces;
-using shopping_app_dotnet_api.Interfaces.Models;
+using ShoppingApp.Api.Interfaces;
+using ShoppingApp.Api.Interfaces.Models;
 
-namespace shopping_app_dotnet_api.Services;
+namespace ShoppingApp.Api.Services;
 
 public class ProductService : IProductService
 {
@@ -22,3 +22,4 @@ public class ProductService : IProductService
         return await _productRepository.GetByIdAsync(id);
     }
 }
+

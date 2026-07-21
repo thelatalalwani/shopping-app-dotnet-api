@@ -1,8 +1,8 @@
 using Microsoft.Data.SqlClient;
-using shopping_app_dotnet_api.DTOs;
-using shopping_app_dotnet_api.Interfaces;
+using ShoppingApp.Api.DTOs;
+using ShoppingApp.Api.Interfaces;
 
-namespace shopping_app_dotnet_api.Repositories;
+namespace ShoppingApp.Api.Repositories;
 
 public class OrderRepository : IOrderRepository
 {
@@ -109,3 +109,4 @@ VALUES
         }
     }
 }
+

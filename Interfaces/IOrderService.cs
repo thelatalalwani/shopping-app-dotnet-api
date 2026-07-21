@@ -1,8 +1,9 @@
-using shopping_app_dotnet_api.DTOs;
+using ShoppingApp.Api.DTOs;
 
-namespace shopping_app_dotnet_api.Interfaces;
+namespace ShoppingApp.Api.Interfaces;
 
 public interface IOrderService
 {
     Task CreateOrderAsync(CreateOrderRequest request);
 }
+

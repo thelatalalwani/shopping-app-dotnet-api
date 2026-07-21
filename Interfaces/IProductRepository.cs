@@ -1,9 +1,10 @@
-using shopping_app_dotnet_api.Interfaces.Models;
+using ShoppingApp.Api.Interfaces.Models;
 
-namespace shopping_app_dotnet_api.Interfaces;
+namespace ShoppingApp.Api.Interfaces;
 
 public interface IProductRepository
 {
     Task<List<Product>> GetAllAsync();
     Task<Product?> GetByIdAsync(int id);
 }
+

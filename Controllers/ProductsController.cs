@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using shopping_app_dotnet_api.Interfaces;
+using ShoppingApp.Api.Interfaces;
 
-namespace shopping_app_dotnet_api.Controllers;
+namespace ShoppingApp.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -35,3 +35,4 @@ public class ProductsController : ControllerBase
         return Ok(product);
     }
 }
+

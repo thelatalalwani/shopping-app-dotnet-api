@@ -1,8 +1,8 @@
-using shopping_app_dotnet_api.Interfaces;
-using shopping_app_dotnet_api.Interfaces.Repositories;
-using shopping_app_dotnet_api.Middleware;
-using shopping_app_dotnet_api.Repositories;
-using shopping_app_dotnet_api.Services;
+using ShoppingApp.Api.Interfaces;
+using ShoppingApp.Api.Interfaces.Repositories;
+using ShoppingApp.Api.Middleware;
+using ShoppingApp.Api.Repositories;
+using ShoppingApp.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

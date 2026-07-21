@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
-using shopping_app_dotnet_api.DTOs;
-using shopping_app_dotnet_api.Interfaces;
+using ShoppingApp.Api.DTOs;
+using ShoppingApp.Api.Interfaces;
 
-namespace shopping_app_dotnet_api.Services;
+namespace ShoppingApp.Api.Services;
 
 public class OrderService : IOrderService
 {
@@ -39,3 +39,4 @@ public class OrderService : IOrderService
         await _orderRepository.CreateOrderAsync(request);
     }
 }
+

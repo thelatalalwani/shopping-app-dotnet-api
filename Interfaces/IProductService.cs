@@ -1,6 +1,6 @@
-using shopping_app_dotnet_api.Interfaces.Models;
+using ShoppingApp.Api.Interfaces.Models;
 
-namespace shopping_app_dotnet_api.Interfaces;
+namespace ShoppingApp.Api.Interfaces;
 
 public interface IProductService
 {
@@ -8,3 +8,4 @@ public interface IProductService
 
     Task<Product?> GetByIdAsync(int id);
 }
+
