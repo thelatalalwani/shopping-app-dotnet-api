@@ -4,6 +4,8 @@ namespace ShoppingApp.Api.Interfaces;
 
 public interface IOrderRepository
 {
-    Task CreateOrderAsync(CreateOrderRequest request);
+    Task<int> CreateOrderAsync(
+        int userId,
+        CreateOrderRequest request);
 }
 

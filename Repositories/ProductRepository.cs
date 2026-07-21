@@ -2,7 +2,7 @@ using Microsoft.Data.SqlClient;
 using ShoppingApp.Api.Interfaces;
 using ShoppingApp.Api.Interfaces.Models;
 
-namespace ShoppingApp.Api.Interfaces.Repositories;
+namespace ShoppingApp.Api.Repositories;
 
 public class ProductRepository : IProductRepository
 {

@@ -16,52 +16,66 @@ public class ExceptionMiddleware
         _logger = logger;
     }
 
-    public async Task InvokeAsync(HttpContext context)
+    public async Task InvokeAsync(
+        HttpContext context)
     {
         try
         {
             await _next(context);
         }
-        catch (Exception ex)
+        catch (ArgumentException exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Validation error occurred.");
+
+            await WriteErrorResponseAsync(
+                context,
+                HttpStatusCode.BadRequest,
+                exception.Message);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Authentication failed.");
+
+            await WriteErrorResponseAsync(
+                context,
+                HttpStatusCode.Unauthorized,
+                exception.Message);
+        }
+        catch (Exception exception)
         {
             _logger.LogError(
-                ex,
-                "Unhandled exception occurred while processing {Method} {Path}",
-                context.Request.Method,
-                context.Request.Path);
+                exception,
+                "An unexpected error occurred.");
 
-            await HandleExceptionAsync(context, ex);
+            await WriteErrorResponseAsync(
+                context,
+                HttpStatusCode.InternalServerError,
+                "An unexpected error occurred.");
         }
     }
 
-    private static async Task HandleExceptionAsync(
+    private static async Task WriteErrorResponseAsync(
         HttpContext context,
-        Exception exception)
+        HttpStatusCode statusCode,
+        string message)
     {
-        context.Response.ContentType = "application/json";
-
-        var statusCode = exception switch
-        {
-            ArgumentException => HttpStatusCode.BadRequest,
-            _ => HttpStatusCode.InternalServerError
-        };
-
-        var message = exception switch
-        {
-            ArgumentException => exception.Message,
-            _ => "An unexpected error occurred."
-        };
-
         context.Response.StatusCode = (int)statusCode;
+        context.Response.ContentType =
+            "application/json";
 
         var response = new
         {
             message
         };
 
-        var jsonResponse = JsonSerializer.Serialize(response);
+        var json =
+            JsonSerializer.Serialize(response);
 
-        await context.Response.WriteAsync(jsonResponse);
+        await context.Response.WriteAsync(json);
     }
 }
 

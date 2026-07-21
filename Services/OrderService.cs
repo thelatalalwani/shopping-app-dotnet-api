@@ -14,7 +14,9 @@ public class OrderService : IOrderService
         _orderRepository = orderRepository;
     }
 
-    public async Task CreateOrderAsync(CreateOrderRequest request)
+    public async Task<int> CreateOrderAsync(
+        int userId,
+        CreateOrderRequest request)
     {
         if (request == null)
         {
@@ -36,7 +38,9 @@ public class OrderService : IOrderService
             throw new ArgumentException("Product quantity must be greater than zero.");
         }
 
-        await _orderRepository.CreateOrderAsync(request);
+        return await _orderRepository.CreateOrderAsync(
+            userId,
+            request);
     }
 }
 

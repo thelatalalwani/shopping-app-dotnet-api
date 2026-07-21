@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShoppingApp.Api.Interfaces;
 
@@ -14,6 +15,7 @@ public class ProductsController : ControllerBase
         _productService = productService;
     }
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -22,6 +24,7 @@ public class ProductsController : ControllerBase
         return Ok(products);
     }
 
+    [AllowAnonymous]
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {

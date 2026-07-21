@@ -13,7 +13,9 @@ public class OrderRepository : IOrderRepository
         _dbConnectionFactory = dbConnectionFactory;
     }
 
-    public async Task CreateOrderAsync(CreateOrderRequest request)
+    public async Task<int> CreateOrderAsync(
+        int userId,
+        CreateOrderRequest request)
     {
         using var connection = _dbConnectionFactory.CreateConnection();
 
@@ -26,6 +28,7 @@ public class OrderRepository : IOrderRepository
             const string orderSql = @"
 INSERT INTO Orders
 (
+    UserId,
     CustomerName,
     Email,
     Phone,
@@ -37,6 +40,7 @@ INSERT INTO Orders
 )
 VALUES
 (
+    @UserId,
     @CustomerName,
     @Email,
     @Phone,
@@ -56,6 +60,7 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);
                 transaction
             );
 
+            command.Parameters.AddWithValue("@UserId", userId);
             command.Parameters.AddWithValue("@CustomerName", request.CustomerName);
             command.Parameters.AddWithValue("@Email", request.Email);
             command.Parameters.AddWithValue("@Phone", request.Phone);
@@ -65,7 +70,15 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);
             command.Parameters.AddWithValue("@Pincode", request.Pincode);
             command.Parameters.AddWithValue("@GrandTotal", request.GrandTotal);
 
-            int orderId = (int)await command.ExecuteScalarAsync();
+            var result = await command.ExecuteScalarAsync();
+
+            if (result is null)
+            {
+                throw new InvalidOperationException(
+                    "Order could not be created.");
+            }
+
+            int orderId = Convert.ToInt32(result);
 
             const string orderItemSql = @"
 INSERT INTO OrderItems
@@ -101,6 +114,8 @@ VALUES
             }
 
             transaction.Commit();
+
+            return orderId;
         }
         catch
         {
