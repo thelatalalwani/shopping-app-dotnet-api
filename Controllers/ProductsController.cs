@@ -19,10 +19,12 @@ public class ProductsController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll(
+        [FromQuery] ProductQueryParameters queryParameters)
     {
         var products =
-            await _productService.GetAllAsync();
+            await _productService.GetAllAsync(
+                queryParameters);
 
         return Ok(products);
     }

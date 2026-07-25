@@ -13,57 +13,149 @@ public class ProductRepository : IProductRepository
     {
         _dbConnectionFactory = dbConnectionFactory;
     }
+    
+public async Task<List<Product>> GetAllAsync(
+    ProductQueryParameters queryParameters)
+{
+    var products = new List<Product>();
 
-    public async Task<List<Product>> GetAllAsync()
+    using var connection =
+        _dbConnectionFactory.CreateConnection();
+
+    await connection.OpenAsync();
+
+    var conditions = new List<string>();
+
+    var query = """
+        SELECT
+            Id,
+            Name,
+            Description,
+            Category,
+            Price,
+            ImageUrl,
+            Stock,
+            CreatedDate
+        FROM Products
+        """;
+
+    using var command = new SqlCommand();
+    command.Connection = connection;
+
+    if (!string.IsNullOrWhiteSpace(
+        queryParameters.Search))
     {
-        var products = new List<Product>();
+        conditions.Add("""
+            (
+                Name LIKE @Search
+                OR Description LIKE @Search
+            )
+            """);
 
-        using var connection = _dbConnectionFactory.CreateConnection();
-
-        await connection.OpenAsync();
-
-        string query = @"
-            SELECT
-                Id,
-                Name,
-                Description,
-                Price,
-                ImageUrl,
-                Stock,
-                CreatedDate
-            FROM Products";
-
-        using var command = new SqlCommand(query, connection);
-
-        using var reader = await command.ExecuteReaderAsync();
-
-        while (await reader.ReadAsync())
-        {
-            products.Add(new Product
-            {
-                Id = Convert.ToInt32(reader["Id"]),
-                Name = reader["Name"].ToString()!,
-                Description = reader["Description"]?.ToString(),
-                Price = Convert.ToDecimal(reader["Price"]),
-                ImageUrl = reader["ImageUrl"]?.ToString(),
-                Stock = Convert.ToInt32(reader["Stock"]),
-                CreatedDate = Convert.ToDateTime(reader["CreatedDate"])
-            });
-        }
-
-        return products;
+        command.Parameters.AddWithValue(
+            "@Search",
+            $"%{queryParameters.Search.Trim()}%");
     }
 
+    if (!string.IsNullOrWhiteSpace(
+        queryParameters.Category))
+    {
+        conditions.Add("Category = @Category");
+
+        command.Parameters.AddWithValue(
+            "@Category",
+            queryParameters.Category.Trim());
+    }
+
+    if (queryParameters.MinPrice.HasValue)
+    {
+        conditions.Add("Price >= @MinPrice");
+
+        command.Parameters.AddWithValue(
+            "@MinPrice",
+            queryParameters.MinPrice.Value);
+    }
+
+    if (queryParameters.MaxPrice.HasValue)
+    {
+        conditions.Add("Price <= @MaxPrice");
+
+        command.Parameters.AddWithValue(
+            "@MaxPrice",
+            queryParameters.MaxPrice.Value);
+    }
+
+    if (conditions.Count > 0)
+    {
+        query +=
+            " WHERE " +
+            string.Join(" AND ", conditions);
+    }
+
+    var sortColumn =
+        queryParameters.SortBy?.ToLower() switch
+        {
+            "price" => "Price",
+            "name" => "Name",
+            _ => "Id"
+        };
+
+    var sortDirection =
+        queryParameters.SortDirection?.ToLower()
+            == "desc"
+            ? "DESC"
+            : "ASC";
+
+    query +=
+        $" ORDER BY {sortColumn} {sortDirection}";
+
+    command.CommandText = query;
+
+    using var reader =
+        await command.ExecuteReaderAsync();
+
+    while (await reader.ReadAsync())
+    {
+        products.Add(new Product
+        {
+            Id = Convert.ToInt32(reader["Id"]),
+            Name = reader["Name"].ToString()!,
+            Description =
+                reader["Description"]?.ToString(),
+            Category =
+                reader["Category"]?.ToString(),
+            Price =
+                Convert.ToDecimal(reader["Price"]),
+            ImageUrl =
+                reader["ImageUrl"]?.ToString(),
+            Stock =
+                Convert.ToInt32(reader["Stock"]),
+            CreatedDate =
+                Convert.ToDateTime(
+                    reader["CreatedDate"])
+        });
+    }
+
+    return products;
+}
     public async Task<Product?> GetByIdAsync(int id)
     {
         using var connection = _dbConnectionFactory.CreateConnection();
         await connection.OpenAsync();
 
-        const string query = """
-            SELECT Id, Name, Description, Price, ImageUrl, Stock, CreatedDate
-            FROM Products
-            WHERE Id = @Id
-            """;
+       const string query = """
+    SELECT
+        Id,
+        Name,
+        Description,
+        Category,
+        Price,
+        ImageUrl,
+        Stock,
+        CreatedDate
+    FROM Products
+    WHERE Id = @Id
+    """;
 
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);
@@ -80,6 +172,7 @@ public class ProductRepository : IProductRepository
             Id = Convert.ToInt32(reader["Id"]),
             Name = reader["Name"].ToString()!,
             Description = reader["Description"]?.ToString(),
+            Category = reader["Category"]?.ToString(),
             Price = Convert.ToDecimal(reader["Price"]),
             ImageUrl = reader["ImageUrl"]?.ToString(),
             Stock = Convert.ToInt32(reader["Stock"]),
@@ -97,27 +190,29 @@ public class ProductRepository : IProductRepository
         await connection.OpenAsync();
 
         const string query = """
-            INSERT INTO Products
-            (
-                Name,
-                Description,
-                Price,
-                ImageUrl,
-                Stock,
-                CreatedDate
-            )
-            VALUES
-            (
-                @Name,
-                @Description,
-                @Price,
-                @ImageUrl,
-                @Stock,
-                SYSUTCDATETIME()
-            );
+        INSERT INTO Products
+        (
+            Name,
+            Description,
+            Category,
+            Price,
+            ImageUrl,
+            Stock,
+            CreatedDate
+        )
+        VALUES
+        (
+            @Name,
+            @Description,
+            @Category,
+            @Price,
+            @ImageUrl,
+            @Stock,
+            SYSUTCDATETIME()
+        );
 
-            SELECT CAST(SCOPE_IDENTITY() AS INT);
-            """;
+        SELECT CAST(SCOPE_IDENTITY() AS INT);
+        """;
 
         using var command = new SqlCommand(
             query,
@@ -130,6 +225,10 @@ public class ProductRepository : IProductRepository
         command.Parameters.AddWithValue(
             "@Description",
             (object?)request.Description ?? DBNull.Value);
+
+            command.Parameters.AddWithValue(
+    "@Category",
+    (object?)request.Category ?? DBNull.Value);
 
         command.Parameters.AddWithValue(
             "@Price",
@@ -168,6 +267,7 @@ public class ProductRepository : IProductRepository
             SET
                 Name = @Name,
                 Description = @Description,
+                Category = @Category,
                 Price = @Price,
                 ImageUrl = @ImageUrl,
                 Stock = @Stock
@@ -189,6 +289,10 @@ public class ProductRepository : IProductRepository
         command.Parameters.AddWithValue(
             "@Description",
             (object?)request.Description ?? DBNull.Value);
+
+            command.Parameters.AddWithValue(
+            "@Category",
+            (object?)request.Category ?? DBNull.Value);
 
         command.Parameters.AddWithValue(
             "@Price",

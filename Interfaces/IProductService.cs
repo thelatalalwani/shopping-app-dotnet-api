@@ -5,7 +5,8 @@ namespace ShoppingApp.Api.Interfaces;
 
 public interface IProductService
 {
-    Task<List<Product>> GetAllAsync();
+    Task<List<Product>> GetAllAsync(
+    ProductQueryParameters queryParameters);
 
     Task<Product?> GetByIdAsync(int id);
 
