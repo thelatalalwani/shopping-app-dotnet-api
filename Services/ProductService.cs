@@ -14,12 +14,12 @@ public class ProductService : IProductService
         _productRepository = productRepository;
     }
 
-   public async Task<List<Product>> GetAllAsync(
+   public async Task<PagedResult<Product>> GetAllAsync(
     ProductQueryParameters queryParameters)
 {
     if (
         queryParameters.MinPrice.HasValue &&
-        queryParameters.MinPrice < 0)
+        queryParameters.MinPrice.Value < 0)
     {
         throw new ArgumentException(
             "Minimum price cannot be negative.");
@@ -27,7 +27,7 @@ public class ProductService : IProductService
 
     if (
         queryParameters.MaxPrice.HasValue &&
-        queryParameters.MaxPrice < 0)
+        queryParameters.MaxPrice.Value < 0)
     {
         throw new ArgumentException(
             "Maximum price cannot be negative.");
@@ -36,16 +36,32 @@ public class ProductService : IProductService
     if (
         queryParameters.MinPrice.HasValue &&
         queryParameters.MaxPrice.HasValue &&
-        queryParameters.MinPrice >
-        queryParameters.MaxPrice)
+        queryParameters.MinPrice.Value >
+        queryParameters.MaxPrice.Value)
     {
         throw new ArgumentException(
             "Minimum price cannot exceed maximum price.");
     }
 
+    if (queryParameters.PageNumber <= 0)
+    {
+        queryParameters.PageNumber = 1;
+    }
+
+    if (queryParameters.PageSize <= 0)
+    {
+        queryParameters.PageSize = 5;
+    }
+
+    if (queryParameters.PageSize > 50)
+    {
+        queryParameters.PageSize = 50;
+    }
+
     return await _productRepository.GetAllAsync(
         queryParameters);
 }
+
     public async Task<Product?> GetByIdAsync(int id)
     {
         if (id <= 0)

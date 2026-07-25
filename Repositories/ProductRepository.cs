@@ -13,8 +13,8 @@ public class ProductRepository : IProductRepository
     {
         _dbConnectionFactory = dbConnectionFactory;
     }
-    
-public async Task<List<Product>> GetAllAsync(
+
+public async Task<PagedResult<Product>> GetAllAsync(
     ProductQueryParameters queryParameters)
 {
     var products = new List<Product>();
@@ -26,22 +26,6 @@ public async Task<List<Product>> GetAllAsync(
 
     var conditions = new List<string>();
 
-    var query = """
-        SELECT
-            Id,
-            Name,
-            Description,
-            Category,
-            Price,
-            ImageUrl,
-            Stock,
-            CreatedDate
-        FROM Products
-        """;
-
-    using var command = new SqlCommand();
-    command.Connection = connection;
-
     if (!string.IsNullOrWhiteSpace(
         queryParameters.Search))
     {
@@ -51,46 +35,75 @@ public async Task<List<Product>> GetAllAsync(
                 OR Description LIKE @Search
             )
             """);
-
-        command.Parameters.AddWithValue(
-            "@Search",
-            $"%{queryParameters.Search.Trim()}%");
     }
 
     if (!string.IsNullOrWhiteSpace(
         queryParameters.Category))
     {
         conditions.Add("Category = @Category");
-
-        command.Parameters.AddWithValue(
-            "@Category",
-            queryParameters.Category.Trim());
     }
 
     if (queryParameters.MinPrice.HasValue)
     {
         conditions.Add("Price >= @MinPrice");
-
-        command.Parameters.AddWithValue(
-            "@MinPrice",
-            queryParameters.MinPrice.Value);
     }
 
     if (queryParameters.MaxPrice.HasValue)
     {
         conditions.Add("Price <= @MaxPrice");
-
-        command.Parameters.AddWithValue(
-            "@MaxPrice",
-            queryParameters.MaxPrice.Value);
     }
 
-    if (conditions.Count > 0)
+    var whereClause =
+        conditions.Count > 0
+            ? " WHERE " +
+              string.Join(" AND ", conditions)
+            : "";
+
+    void AddFilterParameters(SqlCommand command)
     {
-        query +=
-            " WHERE " +
-            string.Join(" AND ", conditions);
+        if (!string.IsNullOrWhiteSpace(
+            queryParameters.Search))
+        {
+            command.Parameters.AddWithValue(
+                "@Search",
+                $"%{queryParameters.Search.Trim()}%");
+        }
+
+        if (!string.IsNullOrWhiteSpace(
+            queryParameters.Category))
+        {
+            command.Parameters.AddWithValue(
+                "@Category",
+                queryParameters.Category.Trim());
+        }
+
+        if (queryParameters.MinPrice.HasValue)
+        {
+            command.Parameters.AddWithValue(
+                "@MinPrice",
+                queryParameters.MinPrice.Value);
+        }
+
+        if (queryParameters.MaxPrice.HasValue)
+        {
+            command.Parameters.AddWithValue(
+                "@MaxPrice",
+                queryParameters.MaxPrice.Value);
+        }
     }
+
+    var countQuery =
+        "SELECT COUNT(*) FROM Products" +
+        whereClause;
+
+    using var countCommand =
+        new SqlCommand(countQuery, connection);
+
+    AddFilterParameters(countCommand);
+
+    var totalItems =
+        Convert.ToInt32(
+            await countCommand.ExecuteScalarAsync());
 
     var sortColumn =
         queryParameters.SortBy?.ToLower() switch
@@ -106,10 +119,39 @@ public async Task<List<Product>> GetAllAsync(
             ? "DESC"
             : "ASC";
 
-    query +=
-        $" ORDER BY {sortColumn} {sortDirection}";
+    var offset =
+        (queryParameters.PageNumber - 1) *
+        queryParameters.PageSize;
 
-    command.CommandText = query;
+    var query = $"""
+        SELECT
+            Id,
+            Name,
+            Description,
+            Category,
+            Price,
+            ImageUrl,
+            Stock,
+            CreatedDate
+        FROM Products
+        {whereClause}
+        ORDER BY {sortColumn} {sortDirection}
+        OFFSET @Offset ROWS
+        FETCH NEXT @PageSize ROWS ONLY;
+        """;
+
+    using var command =
+        new SqlCommand(query, connection);
+
+    AddFilterParameters(command);
+
+    command.Parameters.AddWithValue(
+        "@Offset",
+        offset);
+
+    command.Parameters.AddWithValue(
+        "@PageSize",
+        queryParameters.PageSize);
 
     using var reader =
         await command.ExecuteReaderAsync();
@@ -118,25 +160,51 @@ public async Task<List<Product>> GetAllAsync(
     {
         products.Add(new Product
         {
-            Id = Convert.ToInt32(reader["Id"]),
-            Name = reader["Name"].ToString()!,
+            Id =
+                Convert.ToInt32(reader["Id"]),
+
+            Name =
+                reader["Name"].ToString()!,
+
             Description =
                 reader["Description"]?.ToString(),
+
             Category =
                 reader["Category"]?.ToString(),
+
             Price =
                 Convert.ToDecimal(reader["Price"]),
+
             ImageUrl =
                 reader["ImageUrl"]?.ToString(),
+
             Stock =
                 Convert.ToInt32(reader["Stock"]),
+
             CreatedDate =
                 Convert.ToDateTime(
                     reader["CreatedDate"])
         });
     }
 
-    return products;
+    return new PagedResult<Product>
+    {
+        Items = products,
+
+        PageNumber =
+            queryParameters.PageNumber,
+
+        PageSize =
+            queryParameters.PageSize,
+
+        TotalItems =
+            totalItems,
+
+        TotalPages =
+            (int)Math.Ceiling(
+                totalItems /
+                (double)queryParameters.PageSize)
+    };
 }
     public async Task<Product?> GetByIdAsync(int id)
     {
