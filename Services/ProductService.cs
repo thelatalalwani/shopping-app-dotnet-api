@@ -7,11 +7,14 @@ namespace ShoppingApp.Api.Services;
 public class ProductService : IProductService
 {
     private readonly IProductRepository _productRepository;
+    private readonly IImageService _imageService;
 
-    public ProductService(
-        IProductRepository productRepository)
+   public ProductService(
+    IProductRepository productRepository,
+    IImageService imageService)
     {
         _productRepository = productRepository;
+        _imageService = imageService;
     }
 
    public async Task<PagedResult<Product>> GetAllAsync(
@@ -73,20 +76,27 @@ public class ProductService : IProductService
         return await _productRepository.GetByIdAsync(id);
     }
 
-    public async Task<int> CreateAsync(
-        CreateProductRequest request)
+ public async Task<int> CreateAsync(
+    CreateProductRequest request)
     {
         ValidateProduct(
             request.Name,
             request.Price,
             request.Stock);
+
+        if (request.ImageFile is not null)
+        {
+            request.ImageUrl =
+                await _imageService.SaveProductImageAsync(
+                    request.ImageFile);
+        }
 
         return await _productRepository.CreateAsync(request);
     }
 
     public async Task<bool> UpdateAsync(
-        int id,
-        UpdateProductRequest request)
+    int id,
+    UpdateProductRequest request)
     {
         if (id <= 0)
         {
@@ -99,12 +109,56 @@ public class ProductService : IProductService
             request.Price,
             request.Stock);
 
-        return await _productRepository.UpdateAsync(
-            id,
-            request);
-    }
+        var existingProduct =
+            await _productRepository.GetByIdAsync(id);
 
-    public async Task<bool> DeleteAsync(int id)
+        if (existingProduct is null)
+        {
+            return false;
+        }
+
+        var oldImagePath = existingProduct.ImageUrl;
+        string? newImagePath = null;
+
+        if (request.ImageFile is not null)
+        {
+            newImagePath =
+                await _imageService.SaveProductImageAsync(
+                    request.ImageFile);
+
+            request.ImageUrl = newImagePath;
+        }
+        else if (string.IsNullOrWhiteSpace(request.ImageUrl))
+        {
+            request.ImageUrl = oldImagePath;
+        }
+
+        var wasUpdated =
+            await _productRepository.UpdateAsync(
+                id,
+                request);
+
+        if (wasUpdated &&
+            newImagePath is not null &&
+            !string.Equals(
+                oldImagePath,
+                newImagePath,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            _imageService.DeleteProductImage(
+                oldImagePath);
+        }
+
+        if (!wasUpdated && newImagePath is not null)
+        {
+            _imageService.DeleteProductImage(
+                newImagePath);
+        }
+
+        return wasUpdated;
+    }
+    
+  public async Task<bool> DeleteAsync(int id)
     {
         if (id <= 0)
         {
@@ -112,7 +166,24 @@ public class ProductService : IProductService
                 "Product ID must be greater than zero.");
         }
 
-        return await _productRepository.DeleteAsync(id);
+        var existingProduct =
+            await _productRepository.GetByIdAsync(id);
+
+        if (existingProduct is null)
+        {
+            return false;
+        }
+
+        var wasDeleted =
+            await _productRepository.DeleteAsync(id);
+
+        if (wasDeleted)
+        {
+            _imageService.DeleteProductImage(
+                existingProduct.ImageUrl);
+        }
+
+        return wasDeleted;
     }
 
     private static void ValidateProduct(

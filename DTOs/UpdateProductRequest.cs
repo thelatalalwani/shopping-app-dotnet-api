@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace ShoppingApp.Api.DTOs;
 
 public class UpdateProductRequest
@@ -6,13 +8,13 @@ public class UpdateProductRequest
 
     public string? Description { get; set; }
 
-      public string? Category { get; set; }
+    public string? Category { get; set; }
 
     public decimal Price { get; set; }
 
     public string? ImageUrl { get; set; }
 
-    public int Stock { get; set; }
+    public IFormFile? ImageFile { get; set; }
 
-  
+    public int Stock { get; set; }
 }

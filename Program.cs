@@ -183,6 +183,8 @@ builder.Services.AddScoped<
     IOrderService,
     OrderService>();
 
+builder.Services.AddScoped<IImageService, ImageService>();
+
 builder.Services.AddScoped<
     IProductService,
     ProductService>();
@@ -204,6 +206,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseCors("ReactApp");
+
+app.UseStaticFiles();
 
 app.UseAuthentication();
 

@@ -50,8 +50,9 @@ public class ProductsController : ControllerBase
 
     [Authorize(Roles = "Admin")]
     [HttpPost]
+    [Consumes("multipart/form-data")]
     public async Task<IActionResult> Create(
-        CreateProductRequest request)
+        [FromForm] CreateProductRequest request)
     {
         var productId =
             await _productService.CreateAsync(request);
@@ -66,11 +67,13 @@ public class ProductsController : ControllerBase
             });
     }
 
+
     [Authorize(Roles = "Admin")]
     [HttpPut("{id:int}")]
+    [Consumes("multipart/form-data")]
     public async Task<IActionResult> Update(
         int id,
-        UpdateProductRequest request)
+        [FromForm] UpdateProductRequest request)
     {
         var wasUpdated =
             await _productService.UpdateAsync(
@@ -90,6 +93,7 @@ public class ProductsController : ControllerBase
             message = "Product updated successfully."
         });
     }
+
 
     [Authorize(Roles = "Admin")]
     [HttpDelete("{id:int}")]
