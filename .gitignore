@@ -27,3 +27,11 @@ secrets.json
 appsettings.Production.json
 
 scripts/output
+
+# .NET generated folders
+bin/
+obj/
+
+# Deployment output
+publish/
+.publish/
