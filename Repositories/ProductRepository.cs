@@ -15,14 +15,16 @@ public class ProductRepository : IProductRepository
     }
 
 public async Task<PagedResult<Product>> GetAllAsync(
-    ProductQueryParameters queryParameters)
+    ProductQueryParameters queryParameters,
+    CancellationToken cancellationToken)
 {
     var products = new List<Product>();
 
     using var connection =
         _dbConnectionFactory.CreateConnection();
 
-    await connection.OpenAsync();
+    await connection.OpenAsync(
+        cancellationToken);
 
     var conditions = new List<string>();
 
@@ -40,26 +42,32 @@ public async Task<PagedResult<Product>> GetAllAsync(
     if (!string.IsNullOrWhiteSpace(
         queryParameters.Category))
     {
-        conditions.Add("Category = @Category");
+        conditions.Add(
+            "Category = @Category");
     }
 
     if (queryParameters.MinPrice.HasValue)
     {
-        conditions.Add("Price >= @MinPrice");
+        conditions.Add(
+            "Price >= @MinPrice");
     }
 
     if (queryParameters.MaxPrice.HasValue)
     {
-        conditions.Add("Price <= @MaxPrice");
+        conditions.Add(
+            "Price <= @MaxPrice");
     }
 
     var whereClause =
         conditions.Count > 0
             ? " WHERE " +
-              string.Join(" AND ", conditions)
+              string.Join(
+                  " AND ",
+                  conditions)
             : "";
 
-    void AddFilterParameters(SqlCommand command)
+    void AddFilterParameters(
+        SqlCommand command)
     {
         if (!string.IsNullOrWhiteSpace(
             queryParameters.Search))
@@ -97,27 +105,34 @@ public async Task<PagedResult<Product>> GetAllAsync(
         whereClause;
 
     using var countCommand =
-        new SqlCommand(countQuery, connection);
+        new SqlCommand(
+            countQuery,
+            connection);
 
-    AddFilterParameters(countCommand);
+    AddFilterParameters(
+        countCommand);
+
+    var countResult =
+        await countCommand.ExecuteScalarAsync(
+            cancellationToken);
 
     var totalItems =
-        Convert.ToInt32(
-            await countCommand.ExecuteScalarAsync());
+        Convert.ToInt32(countResult);
 
     var sortColumn =
-        queryParameters.SortBy?.ToLower() switch
-        {
-            "price" => "Price",
-            "name" => "Name",
-            _ => "Id"
-        };
+        queryParameters.SortBy?.ToLowerInvariant()
+            switch
+            {
+                "price" => "Price",
+                "name" => "Name",
+                _ => "Id"
+            };
 
     var sortDirection =
-        queryParameters.SortDirection?.ToLower()
-            == "desc"
-            ? "DESC"
-            : "ASC";
+        queryParameters.SortDirection
+            ?.ToLowerInvariant() == "desc"
+                ? "DESC"
+                : "ASC";
 
     var offset =
         (queryParameters.PageNumber - 1) *
@@ -141,7 +156,9 @@ public async Task<PagedResult<Product>> GetAllAsync(
         """;
 
     using var command =
-        new SqlCommand(query, connection);
+        new SqlCommand(
+            query,
+            connection);
 
     AddFilterParameters(command);
 
@@ -154,32 +171,50 @@ public async Task<PagedResult<Product>> GetAllAsync(
         queryParameters.PageSize);
 
     using var reader =
-        await command.ExecuteReaderAsync();
+        await command.ExecuteReaderAsync(
+            cancellationToken);
 
-    while (await reader.ReadAsync())
+    while (
+        await reader.ReadAsync(
+            cancellationToken))
     {
         products.Add(new Product
         {
             Id =
-                Convert.ToInt32(reader["Id"]),
+                Convert.ToInt32(
+                    reader["Id"]),
 
             Name =
                 reader["Name"].ToString()!,
 
             Description =
-                reader["Description"]?.ToString(),
+                reader["Description"] ==
+                DBNull.Value
+                    ? null
+                    : reader["Description"]
+                        .ToString(),
 
             Category =
-                reader["Category"]?.ToString(),
+                reader["Category"] ==
+                DBNull.Value
+                    ? null
+                    : reader["Category"]
+                        .ToString(),
 
             Price =
-                Convert.ToDecimal(reader["Price"]),
+                Convert.ToDecimal(
+                    reader["Price"]),
 
             ImageUrl =
-                reader["ImageUrl"]?.ToString(),
+                reader["ImageUrl"] ==
+                DBNull.Value
+                    ? null
+                    : reader["ImageUrl"]
+                        .ToString(),
 
             Stock =
-                Convert.ToInt32(reader["Stock"]),
+                Convert.ToInt32(
+                    reader["Stock"]),
 
             CreatedDate =
                 Convert.ToDateTime(
@@ -206,49 +241,93 @@ public async Task<PagedResult<Product>> GetAllAsync(
                 (double)queryParameters.PageSize)
     };
 }
-    public async Task<Product?> GetByIdAsync(int id)
+   public async Task<Product?> GetByIdAsync(
+    int id,
+    CancellationToken cancellationToken = default)
+{
+    using var connection =
+        _dbConnectionFactory.CreateConnection();
+
+    await connection.OpenAsync(
+        cancellationToken);
+
+    const string query = """
+        SELECT
+            Id,
+            Name,
+            Description,
+            Category,
+            Price,
+            ImageUrl,
+            Stock,
+            CreatedDate
+        FROM Products
+        WHERE Id = @Id;
+        """;
+
+    using var command =
+        new SqlCommand(
+            query,
+            connection);
+
+    command.Parameters.AddWithValue(
+        "@Id",
+        id);
+
+    using var reader =
+        await command.ExecuteReaderAsync(
+            cancellationToken);
+
+    if (
+        !await reader.ReadAsync(
+            cancellationToken))
     {
-        using var connection = _dbConnectionFactory.CreateConnection();
-        await connection.OpenAsync();
-
-       const string query = """
-    SELECT
-        Id,
-        Name,
-        Description,
-        Category,
-        Price,
-        ImageUrl,
-        Stock,
-        CreatedDate
-    FROM Products
-    WHERE Id = @Id
-    """;
-
-        using var command = new SqlCommand(query, connection);
-        command.Parameters.AddWithValue("@Id", id);
-
-        using var reader = await command.ExecuteReaderAsync();
-
-        if (!await reader.ReadAsync())
-        {
-            return null;
-        }
-
-        return new Product
-        {
-            Id = Convert.ToInt32(reader["Id"]),
-            Name = reader["Name"].ToString()!,
-            Description = reader["Description"]?.ToString(),
-            Category = reader["Category"]?.ToString(),
-            Price = Convert.ToDecimal(reader["Price"]),
-            ImageUrl = reader["ImageUrl"]?.ToString(),
-            Stock = Convert.ToInt32(reader["Stock"]),
-            CreatedDate = Convert.ToDateTime(reader["CreatedDate"])
-        };
+        return null;
     }
 
+    return new Product
+    {
+        Id =
+            Convert.ToInt32(
+                reader["Id"]),
 
+        Name =
+            reader["Name"].ToString()!,
+
+        Description =
+            reader["Description"] ==
+            DBNull.Value
+                ? null
+                : reader["Description"]
+                    .ToString(),
+
+        Category =
+            reader["Category"] ==
+            DBNull.Value
+                ? null
+                : reader["Category"]
+                    .ToString(),
+
+        Price =
+            Convert.ToDecimal(
+                reader["Price"]),
+
+        ImageUrl =
+            reader["ImageUrl"] ==
+            DBNull.Value
+                ? null
+                : reader["ImageUrl"]
+                    .ToString(),
+
+        Stock =
+            Convert.ToInt32(
+                reader["Stock"]),
+
+        CreatedDate =
+            Convert.ToDateTime(
+                reader["CreatedDate"])
+    };
+}
     public async Task<int> CreateAsync(
         CreateProductRequest request)
     {

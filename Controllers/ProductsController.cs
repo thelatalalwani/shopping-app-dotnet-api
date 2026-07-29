@@ -18,35 +18,42 @@ public class ProductsController : ControllerBase
     }
 
     [AllowAnonymous]
-    [HttpGet]
-    public async Task<IActionResult> GetAll(
-        [FromQuery]
-        ProductQueryParameters queryParameters)
+[HttpGet]
+public async Task<IActionResult> GetAll(
+    [FromQuery]
+    ProductQueryParameters queryParameters,
+    CancellationToken cancellationToken)
     {
         var result =
             await _productService.GetAllAsync(
-                queryParameters);
+                queryParameters,
+                cancellationToken);
 
         return Ok(result);
     }
 
     [AllowAnonymous]
-    [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetById(int id)
+[HttpGet("{id:int}")]
+public async Task<IActionResult> GetById(
+    int id,
+    CancellationToken cancellationToken)
+{
+    var product =
+        await _productService.GetByIdAsync(
+            id,
+            cancellationToken);
+
+    if (product is null)
     {
-        var product =
-            await _productService.GetByIdAsync(id);
-
-        if (product is null)
+        return NotFound(new
         {
-            return NotFound(new
-            {
-                message = "Product was not found."
-            });
-        }
-
-        return Ok(product);
+            message =
+                "Product was not found."
+        });
     }
+
+    return Ok(product);
+}
 
     [Authorize(Roles = "Admin")]
     [HttpPost]

@@ -17,8 +17,9 @@ public class ProductService : IProductService
         _imageService = imageService;
     }
 
-   public async Task<PagedResult<Product>> GetAllAsync(
-    ProductQueryParameters queryParameters)
+  public async Task<PagedResult<Product>> GetAllAsync(
+    ProductQueryParameters queryParameters,
+    CancellationToken cancellationToken)
 {
     if (
         queryParameters.MinPrice.HasValue &&
@@ -62,19 +63,24 @@ public class ProductService : IProductService
     }
 
     return await _productRepository.GetAllAsync(
-        queryParameters);
+        queryParameters,
+        cancellationToken);
 }
 
-    public async Task<Product?> GetByIdAsync(int id)
+  public async Task<Product?> GetByIdAsync(
+    int id,
+    CancellationToken cancellationToken)
+{
+    if (id <= 0)
     {
-        if (id <= 0)
-        {
-            throw new ArgumentException(
-                "Product ID must be greater than zero.");
-        }
-
-        return await _productRepository.GetByIdAsync(id);
+        throw new ArgumentException(
+            "Product ID must be greater than zero.");
     }
+
+    return await _productRepository.GetByIdAsync(
+        id,
+        cancellationToken);
+}
 
  public async Task<int> CreateAsync(
     CreateProductRequest request)

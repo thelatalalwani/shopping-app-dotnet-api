@@ -6,9 +6,12 @@ namespace ShoppingApp.Api.Interfaces;
 public interface IProductRepository
 {
     Task<PagedResult<Product>> GetAllAsync(
-        ProductQueryParameters queryParameters);
+        ProductQueryParameters queryParameters,
+        CancellationToken cancellationToken);
 
-    Task<Product?> GetByIdAsync(int id);
+    Task<Product?> GetByIdAsync(
+        int id,
+        CancellationToken cancellationToken = default);
 
     Task<int> CreateAsync(
         CreateProductRequest request);
