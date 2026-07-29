@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using ShoppingApp.Api.DTOs;
 using ShoppingApp.Api.Interfaces;
 
@@ -9,20 +10,34 @@ namespace ShoppingApp.Api.Controllers;
 [Route("api/[controller]")]
 public class ProductsController : ControllerBase
 {
-    private readonly IProductService _productService;
+    private const string ProductsCacheTag =
+        "products";
+
+    private readonly IProductService
+        _productService;
+
+    private readonly IOutputCacheStore
+        _outputCacheStore;
 
     public ProductsController(
-        IProductService productService)
+        IProductService productService,
+        IOutputCacheStore outputCacheStore)
     {
-        _productService = productService;
+        _productService =
+            productService;
+
+        _outputCacheStore =
+            outputCacheStore;
     }
 
     [AllowAnonymous]
-[HttpGet]
-public async Task<IActionResult> GetAll(
-    [FromQuery]
-    ProductQueryParameters queryParameters,
-    CancellationToken cancellationToken)
+    [HttpGet]
+    [OutputCache(
+        PolicyName = "ProductsCache")]
+    public async Task<IActionResult> GetAll(
+        [FromQuery]
+        ProductQueryParameters queryParameters,
+        CancellationToken cancellationToken)
     {
         var result =
             await _productService.GetAllAsync(
@@ -33,54 +48,71 @@ public async Task<IActionResult> GetAll(
     }
 
     [AllowAnonymous]
-[HttpGet("{id:int}")]
-public async Task<IActionResult> GetById(
-    int id,
-    CancellationToken cancellationToken)
-{
-    var product =
-        await _productService.GetByIdAsync(
-            id,
-            cancellationToken);
-
-    if (product is null)
-    {
-        return NotFound(new
+    [HttpGet("{id:int}")]
+    [OutputCache(
+        Duration = 30,
+        Tags = new[]
         {
-            message =
-                "Product was not found."
-        });
-    }
+            ProductsCacheTag
+        })]
+    public async Task<IActionResult> GetById(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var product =
+            await _productService.GetByIdAsync(
+                id,
+                cancellationToken);
 
-    return Ok(product);
-}
+        if (product is null)
+        {
+            return NotFound(new
+            {
+                message =
+                    "Product was not found."
+            });
+        }
+
+        return Ok(product);
+    }
 
     [Authorize(Roles = "Admin")]
     [HttpPost]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Create(
-        [FromForm] CreateProductRequest request)
+        [FromForm]
+        CreateProductRequest request,
+        CancellationToken cancellationToken)
     {
         var productId =
-            await _productService.CreateAsync(request);
+            await _productService.CreateAsync(
+                request);
+
+        await ClearProductCacheAsync(
+            cancellationToken);
 
         return CreatedAtAction(
             nameof(GetById),
-            new { id = productId },
+            new
+            {
+                id = productId
+            },
             new
             {
                 id = productId,
-                message = "Product created successfully."
+                message =
+                    "Product created successfully."
             });
     }
-
 
     [Authorize(Roles = "Admin")]
     [HttpPut("{id:int}")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Update(
         int id,
-        [FromForm] UpdateProductRequest request)
+        [FromForm]
+        UpdateProductRequest request,
+        CancellationToken cancellationToken)
     {
         var wasUpdated =
             await _productService.UpdateAsync(
@@ -91,35 +123,56 @@ public async Task<IActionResult> GetById(
         {
             return NotFound(new
             {
-                message = "Product was not found."
+                message =
+                    "Product was not found."
             });
         }
 
+        await ClearProductCacheAsync(
+            cancellationToken);
+
         return Ok(new
         {
-            message = "Product updated successfully."
+            message =
+                "Product updated successfully."
         });
     }
 
-
     [Authorize(Roles = "Admin")]
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(
+        int id,
+        CancellationToken cancellationToken)
     {
         var wasDeleted =
-            await _productService.DeleteAsync(id);
+            await _productService.DeleteAsync(
+                id);
 
         if (!wasDeleted)
         {
             return NotFound(new
             {
-                message = "Product was not found."
+                message =
+                    "Product was not found."
             });
         }
 
+        await ClearProductCacheAsync(
+            cancellationToken);
+
         return Ok(new
         {
-            message = "Product deleted successfully."
+            message =
+                "Product deleted successfully."
         });
+    }
+
+    private async Task ClearProductCacheAsync(
+        CancellationToken cancellationToken)
+    {
+        await _outputCacheStore
+            .EvictByTagAsync(
+                ProductsCacheTag,
+                cancellationToken);
     }
 }

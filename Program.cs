@@ -146,6 +146,32 @@ builder.Services
 builder.Services.AddAuthorization();
 
 // --------------------------------------------------
+// Output caching
+// --------------------------------------------------
+
+builder.Services.AddOutputCache(options =>
+{
+    options.AddPolicy(
+        "ProductsCache",
+        policy =>
+        {
+            policy
+                .Expire(
+                    TimeSpan.FromSeconds(30))
+                .SetVaryByQuery(
+                    "Search",
+                    "Category",
+                    "MinPrice",
+                    "MaxPrice",
+                    "SortBy",
+                    "SortDirection",
+                    "PageNumber",
+                    "PageSize")
+                .Tag("products");
+        });
+});
+
+// --------------------------------------------------
 // Authentication dependencies
 // --------------------------------------------------
 
@@ -212,6 +238,8 @@ app.UseStaticFiles();
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+app.UseOutputCache();
 
 app.MapControllers();
 
