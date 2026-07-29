@@ -57,7 +57,8 @@ builder.Services.AddSwaggerGen(options =>
                     Reference =
                         new OpenApiReference
                         {
-                            Type = ReferenceType.SecurityScheme,
+                            Type =
+                                ReferenceType.SecurityScheme,
                             Id = "Bearer"
                         }
                 },
@@ -70,6 +71,18 @@ builder.Services.AddSwaggerGen(options =>
 // CORS
 // --------------------------------------------------
 
+var allowedOrigins =
+    builder.Configuration
+        .GetSection("Cors:AllowedOrigins")
+        .Get<string[]>()
+    ?? Array.Empty<string>();
+
+if (allowedOrigins.Length == 0)
+{
+    throw new InvalidOperationException(
+        "At least one CORS origin must be configured.");
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(
@@ -77,11 +90,9 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy
-    .WithOrigins(
-        "http://localhost:5173",
-        "http://localhost:4173")
-    .AllowAnyHeader()
-    .AllowAnyMethod();
+                .WithOrigins(allowedOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
         });
 });
 
@@ -100,10 +111,41 @@ var jwtSettings =
     ?? throw new InvalidOperationException(
         "JWT settings were not found.");
 
-if (string.IsNullOrWhiteSpace(jwtSettings.Key))
+if (string.IsNullOrWhiteSpace(
+    jwtSettings.Key))
 {
     throw new InvalidOperationException(
         "JWT key was not configured.");
+}
+
+if (string.IsNullOrWhiteSpace(
+    jwtSettings.Issuer))
+{
+    throw new InvalidOperationException(
+        "JWT issuer was not configured.");
+}
+
+if (string.IsNullOrWhiteSpace(
+    jwtSettings.Audience))
+{
+    throw new InvalidOperationException(
+        "JWT audience was not configured.");
+}
+
+// --------------------------------------------------
+// Database configuration
+// --------------------------------------------------
+
+var connectionString =
+    builder.Configuration
+        .GetConnectionString(
+            "DefaultConnection");
+
+if (string.IsNullOrWhiteSpace(
+    connectionString))
+{
+    throw new InvalidOperationException(
+        "The DefaultConnection connection string was not configured.");
 }
 
 // --------------------------------------------------
@@ -114,30 +156,46 @@ builder.Services
     .AddAuthentication(options =>
     {
         options.DefaultAuthenticateScheme =
-            JwtBearerDefaults.AuthenticationScheme;
+            JwtBearerDefaults
+                .AuthenticationScheme;
+
         options.DefaultChallengeScheme =
-            JwtBearerDefaults.AuthenticationScheme;
+            JwtBearerDefaults
+                .AuthenticationScheme;
     })
     .AddJwtBearer(options =>
     {
         options.RequireHttpsMetadata = false;
         options.SaveToken = true;
+
         options.TokenValidationParameters =
             new TokenValidationParameters
             {
                 ValidateIssuer = true,
                 ValidateAudience = true,
                 ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                ValidIssuer = jwtSettings.Issuer,
-                ValidAudience = jwtSettings.Audience,
+
+                ValidateIssuerSigningKey =
+                    true,
+
+                ValidIssuer =
+                    jwtSettings.Issuer,
+
+                ValidAudience =
+                    jwtSettings.Audience,
+
                 IssuerSigningKey =
                     new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(
                             jwtSettings.Key)),
+
                 ClockSkew = TimeSpan.Zero,
-                NameClaimType = ClaimTypes.Name,
-                RoleClaimType = ClaimTypes.Role
+
+                NameClaimType =
+                    ClaimTypes.Name,
+
+                RoleClaimType =
+                    ClaimTypes.Role
             };
     });
 
@@ -194,10 +252,11 @@ builder.Services.AddScoped<
     PasswordHasher<User>>();
 
 // --------------------------------------------------
-// Existing registrations
+// Application dependencies
 // --------------------------------------------------
 
-builder.Services.AddSingleton<DbConnectionFactory>();
+builder.Services.AddSingleton<
+    DbConnectionFactory>();
 
 builder.Services.AddScoped<
     IProductRepository,
@@ -211,11 +270,17 @@ builder.Services.AddScoped<
     IOrderService,
     OrderService>();
 
-builder.Services.AddScoped<IImageService, ImageService>();
+builder.Services.AddScoped<
+    IImageService,
+    ImageService>();
 
 builder.Services.AddScoped<
     IProductService,
     ProductService>();
+
+// --------------------------------------------------
+// Build application
+// --------------------------------------------------
 
 var app = builder.Build();
 
@@ -223,7 +288,8 @@ var app = builder.Build();
 // Middleware pipeline
 // --------------------------------------------------
 
-app.UseMiddleware<ExceptionMiddleware>();
+app.UseMiddleware<
+    ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

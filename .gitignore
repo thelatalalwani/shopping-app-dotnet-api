@@ -24,5 +24,6 @@ Thumbs.db
 appsettings.Local.json
 secrets.json
 *.env
+appsettings.Production.json
 
 scripts/output
