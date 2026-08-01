@@ -8,10 +8,14 @@ namespace ShoppingApp.Api.Services;
 public class OrderService : IOrderService
 {
     private readonly IOrderRepository _orderRepository;
+    private readonly IDiscountCalculator _discountCalculator;
 
-    public OrderService(IOrderRepository orderRepository)
+    public OrderService(
+        IOrderRepository orderRepository,
+        IDiscountCalculator discountCalculator)
     {
         _orderRepository = orderRepository;
+        _discountCalculator = discountCalculator;
     }
 
     public async Task<int> CreateOrderAsync(
@@ -37,6 +41,19 @@ public class OrderService : IOrderService
         {
             throw new ArgumentException("Product quantity must be greater than zero.");
         }
+
+        var amountAfterFestivalDiscount =
+            _discountCalculator.ApplyFestivalDiscount(
+                request.GrandTotal);
+
+        var finalAmount =
+            _discountCalculator.ApplyBankDiscount(
+                amountAfterFestivalDiscount);
+
+        request.GrandTotal =
+            decimal.Round(
+                finalAmount,
+                2);
 
         return await _orderRepository.CreateOrderAsync(
             userId,

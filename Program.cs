@@ -270,6 +270,10 @@ builder.Services.AddScoped<
     IOrderService,
     OrderService>();
 
+builder.Services.AddTransient<
+    IDiscountCalculator,
+    DiscountCalculator>();
+
 builder.Services.AddScoped<
     IImageService,
     ImageService>();
